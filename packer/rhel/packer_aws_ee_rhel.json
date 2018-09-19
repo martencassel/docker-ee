@@ -1,0 +1,58 @@
+{
+    "variables": {
+        "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
+        "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+        "region": "eu-central-1",
+        "rhsm_username": "{{env `RHSM_USERNAME`}}",
+        "rhsm_password": "{{env `RHSM_PASSWORD`}}", 
+        "docker_ee_url": "{{env `DOCKER_EE_URL`}}",
+        "docker_ee_fqdn": "{{env `DOCKER_EE_FQDN`}}",
+        "os_name": "{{env `OS_NAME`}}",
+        "ami_id": "{{env `OS_AMI_ID`}}"
+    },
+    "builders": [
+        {
+            "access_key": "{{user `aws_access_key`}}",
+            "ami_name": "packer-linux-{{user `os_name`}}-{{user `docker_ee_fqdn`}}-{{timestamp}}",
+            "instance_type": "t2.micro",
+            "region": "eu-central-1",
+            "secret_key": "{{user `aws_secret_key`}}",
+            "source_ami": "{{user `ami_id`}}",
+            "ssh_username": "ec2-user",
+            "type": "amazon-ebs"
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "shell",
+            "environment_vars": [
+                "DOCKER_URL={{user `docker_ee_url`}}",
+                "DOCKER_EE_FQDN={{user `docker_ee_fqdn`}}"
+            ],
+            "inline": [
+                "echo $DOCKER_URL",
+                "echo $DOCKER_EE_FQDN"
+            ]
+        },
+        {
+            "type": "shell",
+            "environment_vars": [
+                "RHSM_USERNAME={{user `rhsm_username`}}",
+                "RHSM_PASSWORD={{user `rhsm_password`}}"
+            ],
+            "inline": [
+                "sudo subscription-manager register --username $RHSM_USERNAME --password $RHSM_PASSWORD",
+                "sudo subscription-manager attach",
+                "sudo yum -y update"
+            ]
+        },
+        {
+            "type": "shell",
+            "environment_vars": [
+                "DOCKER_URL={{user `docker_ee_url`}}",
+                "DOCKER_EE_FQDN={{user `docker_ee_fqdn`}}"
+            ],
+            "script": "./scripts/install_ee_rhel.sh"
+        }
+    ]
+}
