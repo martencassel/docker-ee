@@ -8,12 +8,15 @@ echo "local: MANAGER_PUBLIC_DNS: $1, ADMIN_USERNAME: $ADMIN_USERNAME"
 # 1. Get client bundle
 
 echo "Getting client bundle"
-
-AUTHTOKEN=$(curl -sk -d "{\"username\":\"$ADMIN_USERNAME\",\"password\":\"$ADMIN_PASSWORD\"}" https://$MANAGER_PUBLIC_DNS/auth/login | jq -r .auth_token)
+LAST_PWD=$(pwd)
 mkdir -p ~/.ucp/
+AUTHTOKEN=$(curl -sk -d "{\"username\":\"$ADMIN_USERNAME\",\"password\":\"$ADMIN_PASSWORD\"}" https://$MANAGER_PUBLIC_DNS/auth/login | jq -r .auth_token)
 curl -k -H "Authorization: Bearer $AUTHTOKEN" https://$MANAGER_PUBLIC_DNS/api/clientbundle -o ~/.ucp/bundle.zip
-unzip ~/.ucp/bundle.zip -d ~/.ucp/ -o
-cd ~/.ucp/ && eval "$(<env.sh)" && cd -
+cd ~/.ucp && unzip -o ~/.ucp/bundle.zip
+eval "$(<env.sh)"
+cd $LAST_PWD
+
+docker node ls
 
 # 2. Enable HTTP routing
 echo "Enabling HTTP routing"
@@ -27,7 +30,15 @@ echo "Interlock services: $COUNT_INTERLOCK"
 
 # 4. Deploy simple swarm service
 echo "Deploy simple swarm service"
-docker stack deploy --compose-file ./ucp-interlock-demo.yml interlock-demo
+docker stack deploy --compose-file ucp-interlock-demo.yml interlock-demo
 
 # 5. Test using CLI
-curl --header "Host: app.example.org" http://$MANAGER_PUBLIC_DNS:80/ping|jq
+echo "Test app.example.org, sleeping in 10 seconds"
+#sleep 10
+curl --header "Host: app.example.org" http://$MANAGER_PUBLIC_DNS:80/ping
+# 6. Set default service
+docker stack deploy --compose-file ucp-interlock-default.yml default
+
+# 7. Test default service
+curl --header "Host: nothing.example.org" \
+    http://$MANAGER_PUBLIC_DNS:80|grep "There is no application configured for this host."

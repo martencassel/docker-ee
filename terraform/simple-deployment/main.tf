@@ -50,7 +50,7 @@ resource "aws_instance" "manager" {
     }
 
     provisioner "local-exec" {
-        command = "./files/local.sh ${aws_instance.manager.0.public_dns} ${var.admin_username} ${var.admin_password}"
+        command = "./files/local-tests.sh ${aws_instance.manager.0.public_dns} ${var.admin_username} ${var.admin_password}"
     }
 }
 
