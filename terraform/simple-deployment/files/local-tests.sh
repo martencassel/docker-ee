@@ -42,3 +42,18 @@ docker stack deploy --compose-file ucp-interlock-default.yml default
 # 7. Test default service
 curl --header "Host: nothing.example.org" \
     http://$MANAGER_PUBLIC_DNS:80|grep "There is no application configured for this host."
+
+# 8. Context/path based routing
+docker network create -d overlay demo
+docker service create \
+    --name demo-path-routing \
+    --network demo \
+    --detach=false \
+    --label com.docker.lb.hosts=demo.local \
+    --label com.docker.lb.port=8080 \
+    --label com.docker.lb.context_root=/app \
+    --label com.docker.lb.context_root_rewrite=true \
+    --env METADATA="demo-context-root" \
+    ehazlett/docker-demo
+
+curl -vs -H "Host: demo.local" http://$MANAGER_PUBLIC_DNS/app/
