@@ -64,7 +64,7 @@ resource "aws_instance" "manager" {
 
 resource "aws_instance" "worker" {
     ami = "${var.ami_id}"
-    instance_type = "${var.instance_type_manager}"
+    instance_type = "t2.small"
     count = 1
     key_name = "${var.ssh_key_name}"
 
